@@ -1,0 +1,42 @@
+id: "daily_corpus_processing"
+name: "Daily Corpus Processing"
+description: "Automatically process new corpus data every day at midnight"
+
+trigger:
+  type: schedule
+  schedule: "0 0 * * *"  # Cron: midnight every day
+  config:
+    timezone: "UTC"
+
+actions:
+  - type: process_corpus
+    name: "process_new_texts"
+    params:
+      corpus_id: "sample_corpus"
+      processing_level: "tokenized"
+      output_dir: "./data/processed"
+    retry_count: 3
+    retry_delay: 300
+    timeout: 3600
+
+  - type: send_notification
+    name: "notify_completion"
+    params:
+      channel: "email"
+      recipients:
+        - admin@example.com
+      template: "processing_complete"
+
+enabled: true
+priority: 10
+
+tags:
+  - daily
+  - corpus
+  - automation
+
+created_by: "system"
+
+metadata:
+  department: "research"
+  project: "nlp_analysis"
