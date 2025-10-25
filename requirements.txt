@@ -1,0 +1,15 @@
+# Core dependencies
+numpy>=1.21.0
+pyyaml>=6.0
+
+# Functional programming libraries
+toolz>=0.12.0
+funcy>=2.0
+
+# Optional: ML and NLP
+# Uncomment based on your needs:
+# scikit-learn>=1.0
+# torch>=2.0
+# transformers>=4.30
+# spacy>=3.5
+# nltk>=3.8

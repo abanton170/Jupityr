@@ -1,0 +1,59 @@
+name: "Sample NLP Corpus"
+description: "Example corpus configuration for text analysis"
+corpus_type: text
+version: "1.0.0"
+
+sources:
+  - name: "primary_texts"
+    type: file
+    location: "./data/raw/texts.json"
+    format: json
+    encoding: utf-8
+    metadata:
+      author: "Research Team"
+      collection_date: "2025-01"
+
+  - name: "additional_texts"
+    type: url
+    location: "https://example.com/api/texts"
+    format: json
+    encoding: utf-8
+
+processing_level: tokenized
+
+transforms:
+  - name: "normalize"
+    function: "normalize_text"
+    enabled: true
+
+  - name: "tokenize"
+    function: "standard_tokenize"
+    enabled: true
+
+  - name: "remove_stopwords"
+    function: "remove_stopwords"
+    params:
+      language: "en"
+    enabled: true
+
+language: en
+languages:
+  - en
+
+tags:
+  - research
+  - nlp
+  - text-analysis
+
+license: "MIT"
+citation: "Sample Corpus (2025). Research Team."
+
+output_format: json
+output_location: "./data/processed/corpus.json"
+
+validation:
+  min_text_length: 10
+  max_text_length: 10000
+  required_fields:
+    - text
+    - id
