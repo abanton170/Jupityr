@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin - Fashion Finds{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="admin-body">
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <div class="admin-brand">
+                <i class="fas fa-gem"></i>
+                <span>Fashion Finds Admin</span>
+            </div>
+
+            <nav class="admin-nav">
+                <a href="{{ url_for('admin_dashboard') }}" class="{% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i> Dashboard
+                </a>
+                <a href="{{ url_for('admin_products') }}" class="{% if request.endpoint in ['admin_products', 'admin_add_product', 'admin_edit_product'] %}active{% endif %}">
+                    <i class="fas fa-box"></i> Products
+                </a>
+                <a href="{{ url_for('index') }}" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> View Site
+                </a>
+            </nav>
+
+            <div class="admin-user">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span>{{ session.admin_username }}</span>
+                </div>
+                <a href="{{ url_for('admin_logout') }}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <div class="admin-content">
+                {% block admin_content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
