@@ -1,0 +1,114 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Dashboard - Fashion Finds{% endblock %}
+
+{% block admin_content %}
+<div class="dashboard-header">
+    <h1><i class="fas fa-chart-line"></i> Dashboard</h1>
+    <p>Welcome back, {{ session.admin_username }}!</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-box"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_products }}</h3>
+            <p>Total Products</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-mouse-pointer"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ total_clicks }}</h3>
+            <p>Total Clicks</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-percentage"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ "%.2f"|format(total_clicks / total_products if total_products > 0 else 0) }}</h3>
+            <p>Clicks per Product</p>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon">
+            <i class="fas fa-star"></i>
+        </div>
+        <div class="stat-info">
+            <h3>{{ top_products|length }}</h3>
+            <p>Top Performers</p>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="dashboard-card">
+        <h2><i class="fas fa-trophy"></i> Top Products by Clicks</h2>
+        {% if top_products %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Clicks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product_name, click_count in top_products %}
+                <tr>
+                    <td>{{ product_name }}</td>
+                    <td><span class="badge">{{ click_count }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="no-data">No click data available yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="dashboard-card">
+        <h2><i class="fas fa-clock"></i> Recent Activity</h2>
+        {% if recent_clicks %}
+        <div class="activity-list">
+            {% for click in recent_clicks %}
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-mouse-pointer"></i>
+                </div>
+                <div class="activity-info">
+                    <strong>{{ click.product.name }}</strong>
+                    <small>{{ click.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No recent activity.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="quick-actions">
+    <h2><i class="fas fa-bolt"></i> Quick Actions</h2>
+    <div class="action-buttons">
+        <a href="{{ url_for('admin_add_product') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Product
+        </a>
+        <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">
+            <i class="fas fa-list"></i> Manage Products
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline" target="_blank">
+            <i class="fas fa-external-link-alt"></i> View Site
+        </a>
+    </div>
+</div>
+{% endblock %}
