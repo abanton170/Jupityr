@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: agentforge/package-lock.json
+
+      - name: Install dependencies
+        working-directory: agentforge
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: agentforge
+        run: npx prisma generate
+
+      - name: Type check
+        working-directory: agentforge
+        run: npx tsc --noEmit
+
+      - name: Lint
+        working-directory: agentforge
+        run: npm run lint
+
+      - name: Build
+        working-directory: agentforge
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:5432/agentforge
+          NEXTAUTH_SECRET: ci-test-secret
+          ENCRYPTION_SECRET: ci-test-encryption-secret
