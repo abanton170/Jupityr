@@ -1,0 +1,240 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  GROWTH
+  SCALE
+}
+
+enum DataSourceType {
+  URL
+  FILE
+  TEXT
+  NOTION
+  QA
+}
+
+enum DataSourceStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum ActionType {
+  CUSTOM_API
+  CALENDLY
+  SLACK_NOTIFY
+  WEB_SEARCH
+  COLLECT_LEAD
+  CUSTOM_BUTTON
+}
+
+enum IntegrationPlatform {
+  SLACK
+  WHATSAPP
+  MESSENGER
+  ZENDESK
+  STRIPE
+  ZAPIER
+}
+
+model User {
+  id               String       @id @default(cuid())
+  email            String       @unique
+  name             String?
+  hashedPassword   String?
+  image            String?
+  planTier         PlanTier     @default(FREE)
+  encryptedApiKeys String?      @db.Text
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  agents           Agent[]
+  accounts         Account[]
+  sessions         Session[]
+  teamMembers      TeamMember[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Agent {
+  id                 String         @id @default(cuid())
+  userId             String
+  name               String
+  description        String?
+  systemPrompt       String         @db.Text
+  model              String         @default("gpt-4o-mini")
+  temperature        Float          @default(0.7)
+  maxTokens          Int            @default(1024)
+  welcomeMessage     String         @default("Hi! How can I help you today?")
+  suggestedQuestions String[]       @default([])
+  primaryColor       String         @default("#6366f1")
+  position           String         @default("bottom-right")
+  avatarUrl          String?
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dataSources   DataSource[]
+  chunks        Chunk[]
+  conversations Conversation[]
+  actions       Action[]
+  leads         Lead[]
+  integrations  Integration[]
+}
+
+model DataSource {
+  id         String           @id @default(cuid())
+  agentId    String
+  type       DataSourceType
+  name       String
+  sourceUrl  String?
+  rawContent String?          @db.Text
+  charCount  Int              @default(0)
+  chunkCount Int              @default(0)
+  status     DataSourceStatus @default(PENDING)
+  errorMsg   String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  agent      Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  chunks     Chunk[]
+}
+
+model Chunk {
+  id        String                          @id @default(cuid())
+  agentId   String
+  sourceId  String
+  content   String                          @db.Text
+  tokenCount Int
+  position  Int
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime                        @default(now())
+  agent     Agent                           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  source    DataSource                      @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+}
+
+model Conversation {
+  id         String    @id @default(cuid())
+  agentId    String
+  sessionId  String
+  visitorId  String?
+  channel    String    @default("web")
+  sentiment  String?
+  topic      String?
+  isResolved Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  messages   Message[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           MessageRole
+  content        String       @db.Text
+  confidence     Float?
+  tokensUsed     Int?
+  model          String?
+  sources        String[]     @default([])
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Action {
+  id           String     @id @default(cuid())
+  agentId      String
+  name         String
+  description  String     @db.Text
+  type         ActionType
+  endpointUrl  String?
+  httpMethod   String?    @default("POST")
+  headers      Json?
+  paramsSchema Json?
+  config       Json?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  agent        Agent      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model Lead {
+  id             String   @id @default(cuid())
+  agentId        String
+  conversationId String?
+  name           String?
+  email          String?
+  phone          String?
+  company        String?
+  customFields   Json?
+  createdAt      DateTime @default(now())
+  agent          Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model Integration {
+  id                   String              @id @default(cuid())
+  agentId              String
+  platform             IntegrationPlatform
+  encryptedCredentials String?             @db.Text
+  config               Json?
+  isActive             Boolean             @default(true)
+  createdAt            DateTime            @default(now())
+  agent                Agent               @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  userId    String
+  role      Role     @default(VIEWER)
+  invitedBy String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
