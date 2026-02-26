@@ -32,7 +32,30 @@ export const agentCreateSchema = z.object({
     .optional(),
 });
 
+export const actionCreateSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().min(1, "Description is required"),
+  type: z.enum([
+    "CUSTOM_API",
+    "CALENDLY",
+    "SLACK_NOTIFY",
+    "WEB_SEARCH",
+    "COLLECT_LEAD",
+    "CUSTOM_BUTTON",
+  ]),
+  endpointUrl: z.string().optional(),
+  httpMethod: z
+    .enum(["GET", "POST", "PUT", "DELETE"])
+    .optional()
+    .default("POST"),
+  headers: z.record(z.string(), z.string()).optional(),
+  paramsSchema: z.record(z.string(), z.unknown()).optional(),
+  config: z.record(z.string(), z.unknown()).optional(),
+  isActive: z.boolean().optional().default(true),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ApiKeysInput = z.infer<typeof apiKeysSchema>;
 export type AgentCreateInput = z.infer<typeof agentCreateSchema>;
+export type ActionCreateInput = z.infer<typeof actionCreateSchema>;

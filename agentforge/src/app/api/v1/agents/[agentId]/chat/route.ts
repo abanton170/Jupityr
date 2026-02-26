@@ -1,23 +1,36 @@
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { decryptApiKeys } from "@/lib/encryption";
 import { ragChat } from "@/lib/rag";
 import { NextResponse } from "next/server";
+import { authenticateApiRequest, isApiError } from "@/lib/api-auth";
+import { apiRateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ agentId: string }> }
 ) {
   try {
-    // 1. Authenticate user
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authResult = await authenticateApiRequest();
+    if (isApiError(authResult)) return authResult;
+
+    const rateLimitResult = apiRateLimit(authResult.userId);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Try again later." },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": String(rateLimitResult.limit),
+            "X-RateLimit-Remaining": String(rateLimitResult.remaining),
+            "X-RateLimit-Reset": String(rateLimitResult.resetMs),
+          },
+        }
+      );
     }
 
     const { agentId } = await params;
 
-    // 2. Parse request body
+    // Parse request body
     const body = await request.json();
     const { message, conversationId, sessionId } = body as {
       message?: string;
@@ -32,23 +45,22 @@ export async function POST(
       );
     }
 
-    // 3. Load agent (with actions) and verify ownership
+    // Load agent and verify ownership
     const agent = await prisma.agent.findUnique({
       where: { id: agentId },
-      include: { actions: true },
     });
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    if (agent.userId !== session.user.id) {
+    if (agent.userId !== authResult.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 4. Get user's API keys
+    // Get user's API keys
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: authResult.userId },
       select: { encryptedApiKeys: true },
     });
 
@@ -61,7 +73,7 @@ export async function POST(
 
     const apiKeys = decryptApiKeys(user.encryptedApiKeys);
 
-    // 5. Get or create conversation
+    // Get or create conversation
     let conversation;
     if (conversationId) {
       conversation = await prisma.conversation.findUnique({
@@ -85,7 +97,7 @@ export async function POST(
         data: {
           agentId,
           sessionId: sessionId || crypto.randomUUID(),
-          channel: "web",
+          channel: "api",
         },
         include: {
           messages: {
@@ -96,7 +108,7 @@ export async function POST(
       });
     }
 
-    // 6. Save user message
+    // Save user message
     await prisma.message.create({
       data: {
         conversationId: conversation.id,
@@ -105,13 +117,13 @@ export async function POST(
       },
     });
 
-    // Build conversation history from prior messages
+    // Build conversation history
     const conversationHistory = conversation.messages.map((m) => ({
       role: m.role === "USER" ? ("user" as const) : ("assistant" as const),
       content: m.content,
     }));
 
-    // 7. Stream response using ragChat
+    // Stream response using ragChat
     const encoder = new TextEncoder();
     let fullResponse = "";
     let sources: string[] = [];
@@ -120,7 +132,6 @@ export async function POST(
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Send conversation ID first so client can use it for follow-ups
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ conversationId: conversation.id })}\n\n`
@@ -138,27 +149,12 @@ export async function POST(
               temperature: agent.temperature,
               maxTokens: agent.maxTokens,
             },
-            actions: agent.actions,
           })) {
             if (chunk.text) {
               fullResponse += chunk.text;
               controller.enqueue(
                 encoder.encode(
                   `data: ${JSON.stringify({ text: chunk.text })}\n\n`
-                )
-              );
-            }
-            if (chunk.toolCall) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ toolCall: chunk.toolCall })}\n\n`
-                )
-              );
-            }
-            if (chunk.toolResult) {
-              controller.enqueue(
-                encoder.encode(
-                  `data: ${JSON.stringify({ toolResult: chunk.toolResult })}\n\n`
                 )
               );
             }
@@ -175,7 +171,7 @@ export async function POST(
             }
           }
 
-          // 8. Save assistant message after streaming completes
+          // Save assistant message
           await prisma.message.create({
             data: {
               conversationId: conversation.id,
@@ -197,7 +193,9 @@ export async function POST(
           controller.close();
         } catch (error) {
           const errorMessage =
-            error instanceof Error ? error.message : "An unexpected error occurred";
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred";
           controller.enqueue(
             encoder.encode(
               `data: ${JSON.stringify({ error: errorMessage })}\n\n`
@@ -217,7 +215,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("Chat API error:", error);
+    console.error("v1 chat API error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

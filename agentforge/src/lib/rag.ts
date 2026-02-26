@@ -1,7 +1,9 @@
 import OpenAI from "openai";
+import { type Action } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { type ApiKeys } from "@/lib/encryption";
 import { streamLLM, type LLMMessage } from "@/lib/llm";
+import { streamLLMWithActions } from "@/lib/llm-with-actions";
 
 interface ChatOptions {
   agentId: string;
@@ -14,6 +16,7 @@ interface ChatOptions {
     temperature: number;
     maxTokens: number;
   };
+  actions?: Action[];
 }
 
 interface RetrievedChunk {
@@ -21,6 +24,14 @@ interface RetrievedChunk {
   content: string;
   source_id: string;
   similarity: number;
+}
+
+interface RagChatChunk {
+  text?: string;
+  sources?: string[];
+  tokensUsed?: number;
+  toolCall?: { actionId: string; params: Record<string, unknown> };
+  toolResult?: { actionId: string; result: unknown };
 }
 
 async function embedText(
@@ -42,12 +53,8 @@ async function embedText(
   return response.data[0].embedding;
 }
 
-export async function* ragChat(options: ChatOptions): AsyncGenerator<{
-  text?: string;
-  sources?: string[];
-  tokensUsed?: number;
-}> {
-  const { agentId, userMessage, conversationHistory, apiKeys, agent } = options;
+export async function* ragChat(options: ChatOptions): AsyncGenerator<RagChatChunk> {
+  const { agentId, userMessage, conversationHistory, apiKeys, agent, actions } = options;
 
   // Step 1: Embed the user query for similarity search
   let chunks: RetrievedChunk[] = [];
@@ -119,18 +126,46 @@ Note: No relevant context was found in the knowledge base for this query. Answer
     { role: "user" as const, content: userMessage },
   ];
 
-  // Step 5: Stream LLM response
+  // Step 5: Stream LLM response (with or without actions)
   let totalTokensUsed: number | undefined;
 
-  for await (const chunk of streamLLM(agent.model, messages, apiKeys, {
-    temperature: agent.temperature,
-    maxTokens: agent.maxTokens,
-  })) {
-    if (chunk.text) {
-      yield { text: chunk.text };
+  if (actions && actions.length > 0) {
+    // Use the actions-aware LLM wrapper
+    for await (const chunk of streamLLMWithActions(
+      agent.model,
+      messages,
+      apiKeys,
+      actions,
+      {
+        temperature: agent.temperature,
+        maxTokens: agent.maxTokens,
+      }
+    )) {
+      if (chunk.text) {
+        yield { text: chunk.text };
+      }
+      if (chunk.toolCall) {
+        yield { toolCall: chunk.toolCall };
+      }
+      if (chunk.toolResult) {
+        yield { toolResult: chunk.toolResult };
+      }
+      if (chunk.tokensUsed) {
+        totalTokensUsed = chunk.tokensUsed;
+      }
     }
-    if (chunk.tokensUsed) {
-      totalTokensUsed = chunk.tokensUsed;
+  } else {
+    // Use the basic LLM streaming (no tools)
+    for await (const chunk of streamLLM(agent.model, messages, apiKeys, {
+      temperature: agent.temperature,
+      maxTokens: agent.maxTokens,
+    })) {
+      if (chunk.text) {
+        yield { text: chunk.text };
+      }
+      if (chunk.tokensUsed) {
+        totalTokensUsed = chunk.tokensUsed;
+      }
     }
   }
 

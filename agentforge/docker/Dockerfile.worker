@@ -1,0 +1,7 @@
+FROM node:20-alpine
+WORKDIR /app
+COPY agentforge/package.json agentforge/package-lock.json ./
+RUN npm ci
+COPY agentforge/ .
+RUN npx prisma generate
+CMD ["npx", "tsx", "src/workers/embedding.worker.ts"]
