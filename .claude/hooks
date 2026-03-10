@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Claude Code hooks — guardrails and automation checks
+# Add pre/post execution hooks here
+
+# Example: Run linter before committing
+# pre-commit: flake8 jupityr/
+# post-test: pytest --tb=short

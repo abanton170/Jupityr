@@ -1,0 +1,17 @@
+{
+  "project": "Jupityr",
+  "description": "Multi-paradigm NLP and gamified learning platform",
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(pytest*)",
+      "Bash(python*)",
+      "Bash(pip install*)",
+      "Bash(black*)",
+      "Bash(flake8*)",
+      "Bash(mypy*)"
+    ]
+  }
+}
