@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}{{ category }} - Fashion Finds{% endblock %}
+
+{% block content %}
+<section class="page-header">
+    <div class="container">
+        <h1>{{ category }}</h1>
+        <p>Discover our curated collection of {{ category|lower }} items</p>
+    </div>
+</section>
+
+<section class="products-page">
+    <div class="container">
+        {% if products %}
+        <div class="products-header">
+            <h2>{{ category }} Collection</h2>
+            <p class="product-count">{{ products|length }} products</p>
+        </div>
+
+        <div class="products-grid">
+            {% for product in products %}
+            <div class="product-card">
+                <div class="product-image">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy">
+                    {% if product.discount_percentage() > 0 %}
+                    <span class="discount-badge">-{{ product.discount_percentage() }}%</span>
+                    {% endif %}
+                    {% if product.featured %}
+                    <span class="featured-badge"><i class="fas fa-star"></i> Featured</span>
+                    {% endif %}
+                </div>
+                <div class="product-info">
+                    <div class="product-brand">{{ product.brand }}</div>
+                    <h3 class="product-name">{{ product.name }}</h3>
+                    <p class="product-description">{{ product.description[:100] }}{% if product.description|length > 100 %}...{% endif %}</p>
+                    <div class="product-price">
+                        <span class="current-price">${{ "%.2f"|format(product.price) }}</span>
+                        {% if product.original_price %}
+                        <span class="original-price">${{ "%.2f"|format(product.original_price) }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-secondary btn-block">View Details</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-products">
+            <i class="fas fa-shopping-bag"></i>
+            <h3>No products in this category yet</h3>
+            <p>Check back soon for new items!</p>
+            <a href="{{ url_for('products') }}" class="btn btn-primary">Browse All Products</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

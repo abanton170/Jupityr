@@ -1,0 +1,149 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{% if product %}Edit{% else %}Add{% endif %} Product - Admin{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+    <h1>
+        <i class="fas fa-{% if product %}edit{% else %}plus{% endif %}"></i>
+        {% if product %}Edit Product{% else %}Add New Product{% endif %}
+    </h1>
+    <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Products
+    </a>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="product-form">
+        <div class="form-grid">
+            <div class="form-section">
+                <h3>Basic Information</h3>
+
+                <div class="form-group">
+                    <label for="name">Product Name *</label>
+                    <input type="text" id="name" name="name" required
+                           value="{% if product %}{{ product.name }}{% endif %}"
+                           placeholder="e.g., Classic Leather Jacket">
+                </div>
+
+                <div class="form-group">
+                    <label for="brand">Brand *</label>
+                    <input type="text" id="brand" name="brand" required
+                           value="{% if product %}{{ product.brand }}{% endif %}"
+                           placeholder="e.g., StyleCo">
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category *</label>
+                    <select id="category" name="category" required>
+                        <option value="">Select a category</option>
+                        <option value="Outerwear" {% if product and product.category == 'Outerwear' %}selected{% endif %}>Outerwear</option>
+                        <option value="Tops" {% if product and product.category == 'Tops' %}selected{% endif %}>Tops</option>
+                        <option value="Bottoms" {% if product and product.category == 'Bottoms' %}selected{% endif %}>Bottoms</option>
+                        <option value="Footwear" {% if product and product.category == 'Footwear' %}selected{% endif %}>Footwear</option>
+                        <option value="Accessories" {% if product and product.category == 'Accessories' %}selected{% endif %}>Accessories</option>
+                        <option value="Jewelry" {% if product and product.category == 'Jewelry' %}selected{% endif %}>Jewelry</option>
+                        <option value="Bags" {% if product and product.category == 'Bags' %}selected{% endif %}>Bags</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="4"
+                              placeholder="Describe the product features and benefits...">{% if product %}{{ product.description }}{% endif %}</textarea>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Pricing</h3>
+
+                <div class="form-group">
+                    <label for="price">Current Price * ($)</label>
+                    <input type="number" id="price" name="price" step="0.01" min="0" required
+                           value="{% if product %}{{ product.price }}{% endif %}"
+                           placeholder="99.99">
+                </div>
+
+                <div class="form-group">
+                    <label for="original_price">Original Price ($)</label>
+                    <input type="number" id="original_price" name="original_price" step="0.01" min="0"
+                           value="{% if product and product.original_price %}{{ product.original_price }}{% endif %}"
+                           placeholder="149.99">
+                    <small>Leave blank if there's no discount</small>
+                </div>
+
+                <h3>Media & Links</h3>
+
+                <div class="form-group">
+                    <label for="image_url">Image URL *</label>
+                    <input type="url" id="image_url" name="image_url" required
+                           value="{% if product %}{{ product.image_url }}{% endif %}"
+                           placeholder="https://example.com/image.jpg">
+                    <small>Use Unsplash or product image URLs</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="affiliate_link">Affiliate Link *</label>
+                    <input type="url" id="affiliate_link" name="affiliate_link" required
+                           value="{% if product %}{{ product.affiliate_link }}{% endif %}"
+                           placeholder="https://affiliate-link.com/product">
+                    <small>Your affiliate tracking link</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="featured" value="1"
+                               {% if product and product.featured %}checked{% endif %}>
+                        <span>Featured Product</span>
+                    </label>
+                    <small>Featured products appear on the homepage</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-large">
+                <i class="fas fa-save"></i>
+                {% if product %}Update Product{% else %}Add Product{% endif %}
+            </button>
+            <a href="{{ url_for('admin_products') }}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+
+{% if product %}
+<div class="product-preview">
+    <h3>Preview</h3>
+    <div class="product-card">
+        <div class="product-image">
+            <img src="{{ product.image_url }}" alt="{{ product.name }}" id="preview-image">
+        </div>
+        <div class="product-info">
+            <div class="product-brand" id="preview-brand">{{ product.brand }}</div>
+            <h3 class="product-name" id="preview-name">{{ product.name }}</h3>
+            <div class="product-price">
+                <span class="current-price" id="preview-price">${{ "%.2f"|format(product.price) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Live preview updates
+    {% if product %}
+    const updatePreview = () => {
+        document.getElementById('preview-name').textContent = document.getElementById('name').value;
+        document.getElementById('preview-brand').textContent = document.getElementById('brand').value;
+        document.getElementById('preview-price').textContent = '$' + parseFloat(document.getElementById('price').value || 0).toFixed(2);
+        document.getElementById('preview-image').src = document.getElementById('image_url').value;
+    };
+
+    ['name', 'brand', 'price', 'image_url'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updatePreview);
+    });
+    {% endif %}
+</script>
+{% endblock %}

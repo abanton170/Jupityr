@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.name }} - Fashion Finds{% endblock %}
+
+{% block content %}
+<section class="product-detail">
+    <div class="container">
+        <div class="product-detail-grid">
+            <div class="product-gallery">
+                <div class="main-image">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                    {% if product.discount_percentage() > 0 %}
+                    <span class="discount-badge">-{{ product.discount_percentage() }}% OFF</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="product-details">
+                <div class="product-brand-large">{{ product.brand }}</div>
+                <h1 class="product-title">{{ product.name }}</h1>
+
+                <div class="product-price-section">
+                    <div class="price-display">
+                        <span class="current-price-large">${{ "%.2f"|format(product.price) }}</span>
+                        {% if product.original_price %}
+                        <span class="original-price-large">${{ "%.2f"|format(product.original_price) }}</span>
+                        {% endif %}
+                    </div>
+                    {% if product.discount_percentage() > 0 %}
+                    <div class="savings-info">
+                        <i class="fas fa-tag"></i> You save ${{ "%.2f"|format(product.original_price - product.price) }} ({{ product.discount_percentage() }}%)
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="product-description-section">
+                    <h3>Description</h3>
+                    <p>{{ product.description }}</p>
+                </div>
+
+                <div class="product-meta">
+                    <div class="meta-item">
+                        <i class="fas fa-tag"></i>
+                        <span>Category: <strong>{{ product.category }}</strong></span>
+                    </div>
+                    <div class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <span>Added: {{ product.created_at.strftime('%B %d, %Y') }}</span>
+                    </div>
+                </div>
+
+                <div class="product-actions">
+                    <a href="{{ url_for('track_click', product_id=product.id) }}" target="_blank" class="btn btn-primary btn-large">
+                        <i class="fas fa-shopping-bag"></i> Shop Now
+                    </a>
+                    <button class="btn btn-outline share-btn">
+                        <i class="fas fa-share-alt"></i> Share
+                    </button>
+                </div>
+
+                <div class="product-features">
+                    <h4><i class="fas fa-shield-alt"></i> Why Shop Through Us?</h4>
+                    <ul>
+                        <li><i class="fas fa-check"></i> Same price as original retailer</li>
+                        <li><i class="fas fa-check"></i> Trusted and verified seller</li>
+                        <li><i class="fas fa-check"></i> We earn a small commission at no cost to you</li>
+                        <li><i class="fas fa-check"></i> Helps support our site to find more great deals</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {% if related_products %}
+        <section class="related-products">
+            <h2 class="section-title">You May Also Like</h2>
+            <div class="products-grid">
+                {% for related in related_products %}
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="{{ related.image_url }}" alt="{{ related.name }}" loading="lazy">
+                        {% if related.discount_percentage() > 0 %}
+                        <span class="discount-badge">-{{ related.discount_percentage() }}%</span>
+                        {% endif %}
+                    </div>
+                    <div class="product-info">
+                        <div class="product-brand">{{ related.brand }}</div>
+                        <h3 class="product-name">{{ related.name }}</h3>
+                        <div class="product-price">
+                            <span class="current-price">${{ "%.2f"|format(related.price) }}</span>
+                            {% if related.original_price %}
+                            <span class="original-price">${{ "%.2f"|format(related.original_price) }}</span>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('product_detail', product_id=related.id) }}" class="btn btn-secondary btn-block">View Details</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelector('.share-btn')?.addEventListener('click', async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: '{{ product.name }}',
+                    text: 'Check out this amazing deal!',
+                    url: window.location.href
+                });
+            } catch (err) {
+                console.log('Error sharing:', err);
+            }
+        } else {
+            // Fallback: copy to clipboard
+            navigator.clipboard.writeText(window.location.href);
+            alert('Link copied to clipboard!');
+        }
+    });
+</script>
+{% endblock %}

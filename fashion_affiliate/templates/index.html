@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Fashion Finds - Discover Your Style{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <h1>Discover Your Style</h1>
+            <p>Curated fashion finds from top brands at exclusive prices</p>
+            <a href="{{ url_for('products') }}" class="btn btn-primary">Shop Now</a>
+        </div>
+    </div>
+</section>
+
+<!-- Categories Section -->
+<section class="categories-section">
+    <div class="container">
+        <h2 class="section-title">Shop by Category</h2>
+        <div class="categories-grid">
+            {% for category in categories %}
+            <a href="{{ url_for('products', category=category) }}" class="category-card">
+                <div class="category-icon">
+                    {% if category == 'Outerwear' %}
+                        <i class="fas fa-tshirt"></i>
+                    {% elif category == 'Accessories' %}
+                        <i class="fas fa-glasses"></i>
+                    {% elif category == 'Footwear' %}
+                        <i class="fas fa-shoe-prints"></i>
+                    {% elif category == 'Tops' %}
+                        <i class="fas fa-hat-cowboy"></i>
+                    {% elif category == 'Bottoms' %}
+                        <i class="fas fa-socks"></i>
+                    {% else %}
+                        <i class="fas fa-tag"></i>
+                    {% endif %}
+                </div>
+                <h3>{{ category }}</h3>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Featured Products Section -->
+<section class="featured-section">
+    <div class="container">
+        <h2 class="section-title">Featured Deals</h2>
+        <div class="products-grid">
+            {% for product in featured_products %}
+            <div class="product-card">
+                <div class="product-image">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy">
+                    {% if product.discount_percentage() > 0 %}
+                    <span class="discount-badge">-{{ product.discount_percentage() }}%</span>
+                    {% endif %}
+                </div>
+                <div class="product-info">
+                    <div class="product-brand">{{ product.brand }}</div>
+                    <h3 class="product-name">{{ product.name }}</h3>
+                    <div class="product-price">
+                        <span class="current-price">${{ "%.2f"|format(product.price) }}</span>
+                        {% if product.original_price %}
+                        <span class="original-price">${{ "%.2f"|format(product.original_price) }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-secondary btn-block">View Details</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Latest Arrivals Section -->
+<section class="latest-section">
+    <div class="container">
+        <h2 class="section-title">Latest Arrivals</h2>
+        <div class="products-grid">
+            {% for product in latest_products %}
+            <div class="product-card">
+                <div class="product-image">
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}" loading="lazy">
+                    {% if product.discount_percentage() > 0 %}
+                    <span class="discount-badge">-{{ product.discount_percentage() }}%</span>
+                    {% endif %}
+                </div>
+                <div class="product-info">
+                    <div class="product-brand">{{ product.brand }}</div>
+                    <h3 class="product-name">{{ product.name }}</h3>
+                    <div class="product-price">
+                        <span class="current-price">${{ "%.2f"|format(product.price) }}</span>
+                        {% if product.original_price %}
+                        <span class="original-price">${{ "%.2f"|format(product.original_price) }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('product_detail', product_id=product.id) }}" class="btn btn-secondary btn-block">View Details</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Benefits Section -->
+<section class="benefits-section">
+    <div class="container">
+        <div class="benefits-grid">
+            <div class="benefit-card">
+                <i class="fas fa-tags"></i>
+                <h3>Best Prices</h3>
+                <p>Exclusive deals and discounts on top fashion brands</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Trusted Partners</h3>
+                <p>All products from verified and trusted retailers</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-sync-alt"></i>
+                <h3>Daily Updates</h3>
+                <p>New products and deals added every day</p>
+            </div>
+            <div class="benefit-card">
+                <i class="fas fa-star"></i>
+                <h3>Curated Selection</h3>
+                <p>Hand-picked items that match the latest trends</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
